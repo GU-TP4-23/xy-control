@@ -1,13 +1,32 @@
 #include <Arduino.h>
-#include <i2c.h>
-
-i2c_inst *i2c;
+#include <Serial.h>
+#include <Wire.h>
 
 void setup() {
   // put your setup code here, to run once:
-  _i2c_init(i2c, 48000);
+  Serial.begin(9600);
+  Serial.println("ARM SEGMENT MOCK-UP");
+  Serial.println("initialising I2C (Wire)...");
+  Serial.println("mode:\tmaster");
+  Wire.begin();
+  Serial.println("I2C initialised!");
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  Serial.println("Initialising transmission with slave device at 0xbf...");
+  Wire.beginTransmission(0xbf);
+
+  Serial.println("Transmission initialised!");
+  char* m = "hello";
+  Serial.print("Writing message:\t");
+  Serial.println(m);
+  Wire.write(m);
+  Serial.println("Done.");
+
+  Serial.println("Terminating transmission...");
+  Wire.endTransmission();
+  Serial.println("Transmission terminated.");
+
+  delay(2000);
 }
