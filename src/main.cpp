@@ -9,13 +9,15 @@ void receiveEvent(int howMany)
   Serial.println("Transmission from master device detected!");
   Serial.println("Reading message...");
 
-  char m[howMany];
-  for (int i=0; i<=howMany; i++)  // loop through all bytes received
+  char buf[howMany];
+  for (int i=0; i<=howMany; i++)    // loop through all bytes received
   {
-    m[i] = Wire.read();           // append character byte to message
+    buf[i] = Wire.read();           // append byte to buffer
   }
   Serial.print("Message received:\t");
-  Serial.println(m);              // print the message
+  float x;                          // variable to decode to
+  memcpy(&x, buf, sizeof(x));       // decode buffer to variable
+  Serial.println(x);                // print the message
 }
 
 void setup() {

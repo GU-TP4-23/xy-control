@@ -18,10 +18,12 @@ void loop() {
   Wire.beginTransmission(0xbf);
 
   Serial.println("Transmission initialised!");
-  char* m = "hello";
+  float x = 123.456;                // value to encode
   Serial.print("Writing message:\t");
-  Serial.println(m);
-  Wire.write(m);
+  Serial.println(x);
+  char buf[sizeof(float)];          // buffer to send
+  memcpy(buf, &x, sizeof(x));       // encode value to buffer
+  Wire.write(buf);                  // send buffer
   Serial.println("Done.");
 
   Serial.println("Terminating transmission...");
