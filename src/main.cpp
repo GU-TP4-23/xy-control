@@ -7,17 +7,32 @@ void receiveEvent(int howMany)
   // function that executes whenever data is received from master
   // this function is registered as an event, see setup()
   Serial.println("Transmission from master device detected!");
-  Serial.println("Reading message...");
+  Serial.print("Reading message...\t");
 
   char buf[howMany];
+  Serial.print(howMany);
+  Serial.println(" bytes");
   for (int i=0; i<=howMany; i++)    // loop through all bytes received
   {
     buf[i] = Wire.read();           // append byte to buffer
   }
-  Serial.print("Message received:\t");
+  Serial.print("Message received:\n");
+
+  char header = buf[0];
+  Serial.print("Header:\t");
+  Serial.println(header);
+
   float x;                          // variable to decode to
-  memcpy(&x, buf, sizeof(x));       // decode buffer to variable
+  memcpy(&x, &buf[1], sizeof(x));       // decode buffer to variable
+  Serial.print("X value:\t");
   Serial.println(x);                // print the message
+
+  float y;
+  memcpy(&y, &buf[5], sizeof(y));
+  Serial.print("Y value:\t");
+  Serial.println(y);
+
+  Serial.println();
 }
 
 void setup() {

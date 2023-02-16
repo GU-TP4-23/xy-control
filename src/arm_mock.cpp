@@ -2,6 +2,8 @@
 #include <Serial.h>
 #include <Wire.h>
 
+const char XY_ADDR = 0x56;
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -14,21 +16,44 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Serial.println("Initialising transmission with slave device at 0xbf...");
-  Wire.beginTransmission(0xbf);
+  Serial.println("Encoding message...");
 
-  Serial.println("Transmission initialised!");
-  float x = 123.456;                // value to encode
-  Serial.print("Writing message:\t");
+  char header = 'a';                           // header
+  float x = 123.456;                           // x value
+  float y = 789;                               // y value
+
+  Serial.print("Message header:\t");
+  Serial.println(header);
+
+  char buf_x[sizeof(x)+1];                      // temp buffer to encode x to
+  memcpy(buf_x, &x, sizeof(x));                 // encode x value to temp buffer
+  Serial.print("Encoded x value of\t");
   Serial.println(x);
-  char buf[sizeof(float)];          // buffer to send
-  memcpy(buf, &x, sizeof(x));       // encode value to buffer
-  Wire.write(buf);                  // send buffer
-  Serial.println("Done.");
 
-  Serial.println("Terminating transmission...");
+  char buf_y[sizeof(y)+1];                      // temp buffer to encode y to
+  memcpy(buf_y, &y, sizeof(y));                 // encode y value to temp buffer
+  Serial.print("Encoded y value of\t");
+  Serial.println(y);
+
+  Serial.print("Initialising transaction with slave device at ");
+  Serial.print(XY_ADDR);
+  Serial.println("...");
+  Wire.beginTransmission(XY_ADDR);
+
+  Serial.println("I2C transaction initialised!");
+  Serial.print("Buffering message:\n");
+  int w_h = Wire.write(header);                 // write header to Wire buffer
+  int w_x = Wire.write(buf_x, sizeof(x));       // write encoded x buffer to Wire buffer
+  int w_y = Wire.write(buf_y, sizeof(y));       // write encoded y buffer to Wire buffer
+  
+  Serial.print("Buffered ");
+  Serial.print(w_h+w_x+w_y);
+  Serial.println(" bytes");
+
+  Serial.println("Flushing buffer...");
   Wire.endTransmission();
-  Serial.println("Transmission terminated.");
+  Serial.println("I2C transaction terminated.");
+  Serial.println();
 
   delay(2000);
 }
