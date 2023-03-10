@@ -9,9 +9,22 @@
 const char header_mv = 0x61;                    // 'a'
 const char header_ok = 0x76;                    // 'v'
 
+const int dirPin_x = 15;
+const int stepPin_x = 14;
+const int dirPin_y = 17;
+const int stepPin_y = 16;
+
 char header;
 float x;
 float y;
+
+int Displacement_Step_Converter(int displacement_um) //function returns the step value after converting um input displacement
+{
+    float pinion_circumference = 25133; //this is in um //this is been calculated by hand (C = pi*D)
+    int step_resolution = round(pinion_circumference/3200);
+    int StepValue = round(displacement_um/step_resolution);
+    return StepValue;
+  }
 
 void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
 {
@@ -43,14 +56,32 @@ void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
     memcpy(&y, &buf[5], sizeof(y));
     Serial.print("Y value:\t\t");
     Serial.println(y);
+    
+    x = Displacement_Step_Converter(x);
+    y = Displacement_Step_Converter(y);
 
-    /*
-    convert x,y into microsteps
-    */
+    //move to x position
+    digitalWrite(dirPin_x, HIGH);
 
-    /*
-    actuate stepper motors for x,y microsteps
-    */
+    for(int i = 0; i < x; i++)
+      {
+        digitalWrite(stepPin_x, HIGH);
+        delayMicroseconds(500);
+        digitalWrite(stepPin_x, LOW);
+        delayMicroseconds(500);
+    }
+    digitalWrite(stepPin_x, LOW);
+
+    //move to y position
+    digitalWrite(dirPin_y, HIGH);
+      for(int i = 0; i < y; i++)
+      {
+        digitalWrite(stepPin_y, HIGH);
+        delayMicroseconds(500);
+        digitalWrite(stepPin_y, LOW);
+        delayMicroseconds(500);
+    }
+    digitalWrite(stepPin_y, LOW);
 
     Serial.println("Firing interrupt...");
     digitalWrite(INT_PIN, HIGH);                // toggle the interrupt pin
@@ -118,6 +149,10 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(INT_PIN, OUTPUT);
+  pinMode(stepPin_x, OUTPUT);
+	pinMode(dirPin_x, OUTPUT);
+  pinMode(stepPin_y, OUTPUT);
+	pinMode(dirPin_y, OUTPUT);
 
   digitalWrite(LED_BUILTIN, HIGH);
   Serial.begin(9600);
