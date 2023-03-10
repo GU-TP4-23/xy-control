@@ -25,7 +25,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   Serial.println("Encoding message...");
 
-  char header = 'a';                           // header
+  char header = 0x61;                          // header ('a')
   float x = 123.456;                           // x value
   float y = 789;                               // y value
 
@@ -63,6 +63,14 @@ void loop() {
   digitalWrite(LED_BUILTIN, LOW);
   Serial.println("I2C transaction terminated.");
   Serial.println();
+
+  Serial.println("Requesting xy go-ahead...");
+  Wire.requestFrom(XY_ADDR, 1);
+  int xy_ready = Wire.read();
+  Serial.print("xy_ready:\t");
+  Serial.println(xy_ready);
+
+  Serial.println("Loop completed!");
 
   delay(10000);
 }
