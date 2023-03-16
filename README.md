@@ -7,6 +7,7 @@
 This project is built using the [PlatformIO](https://marketplace.visualstudio.com/items?itemName=platformio.platformio-ide) extension for [VSCode](https://code.visualstudio.com/).
 
 If using `framework = arduino` in the `platformio.ini` configuration, copy the files from `arduino-patch` into your Arduino installation.
+To locate that in VSCode, CTRL+click on `<Wire.h>` in the application's `main.cpp` and on `WIRE_HOWMANY` in the application's `Wire.h`.
 
 ### Building & Flashing
 
