@@ -9,18 +9,22 @@
 const char header_mv = 0x61;                    // 'a'
 const char header_ok = 0x76;                    // 'v'
 
+const int enable_pin_x = 13;
+const int enable_pin_y = 18;
 const int dirPin_x = 15;
 const int stepPin_x = 14;
-const int dirPin_y = 17;
-const int stepPin_y = 16;
+const int dirPin_y = 16;
+const int stepPin_y = 17;
 
 char header;
 float x;
 float y;
+float x_steps;
+float y_steps;
 
 int Displacement_Step_Converter(int displacement_um) //function returns the step value after converting um input displacement
 {
-    float pinion_circumference = 25133; //this is in um //this is been calculated by hand (C = pi*D)
+    float pinion_circumference = 37800; //this is in um //this is been calculated by hand (C = pi*D)
     int step_resolution = round(pinion_circumference/3200);
     int StepValue = round(displacement_um/step_resolution);
     return StepValue;
@@ -57,38 +61,46 @@ void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
     Serial.print("Y value:\t\t");
     Serial.println(y);
     
-    x = Displacement_Step_Converter(x);
-    y = Displacement_Step_Converter(y);
+    //actuate stepper motors here
+  
+  x_steps = Displacement_Step_Converter(x);
+  y_steps = Displacement_Step_Converter(y);
+  Serial.println(x_steps);
+  Serial.println(y_steps);
 
-    //move to x position
-    digitalWrite(dirPin_x, HIGH);
+  //move to x position
+  digitalWrite(enable_pin_x, LOW);
+  digitalWrite(enable_pin_y, HIGH);
+  digitalWrite(dirPin_x, HIGH);
 
-    for(int i = 0; i < x; i++)
-      {
-        digitalWrite(stepPin_x, HIGH);
-        delayMicroseconds(500);
-        digitalWrite(stepPin_x, LOW);
-        delayMicroseconds(500);
+  for(int i = 0; i < x_steps; i++)
+	  {
+		  digitalWrite(stepPin_x, HIGH);
+		  delayMicroseconds(375);
+		  digitalWrite(stepPin_x, LOW);
+		  delayMicroseconds(375);
     }
-    digitalWrite(stepPin_x, LOW);
 
-    //move to y position
-    digitalWrite(dirPin_y, HIGH);
-      for(int i = 0; i < y; i++)
-      {
-        digitalWrite(stepPin_y, HIGH);
-        delayMicroseconds(500);
-        digitalWrite(stepPin_y, LOW);
-        delayMicroseconds(500);
-    }
+  //move to y position
+  digitalWrite(enable_pin_x, HIGH);
+  digitalWrite(enable_pin_y, LOW);
+  digitalWrite(dirPin_y, HIGH);
+  for(int i = 0; i < y_steps; i++)
+  {
+    digitalWrite(stepPin_y, HIGH);
+    delayMicroseconds(375);
     digitalWrite(stepPin_y, LOW);
+    delayMicroseconds(375);
+  }
+  digitalWrite(enable_pin_x,HIGH);
+  digitalWrite(enable_pin_y,HIGH);
 
-    Serial.println("Firing interrupt...");
-    digitalWrite(INT_PIN, HIGH);                // toggle the interrupt pin
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(200);
-    digitalWrite(INT_PIN, LOW);                 // restore the interrupt pin
-    digitalWrite(LED_BUILTIN, LOW);
+  Serial.println("Firing interrupt...");
+  digitalWrite(INT_PIN, HIGH);                // toggle the interrupt pin
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(200);
+  digitalWrite(INT_PIN, LOW);                 // restore the interrupt pin
+  digitalWrite(LED_BUILTIN, LOW);
   }
   else if (header == header_ok)
   {
@@ -98,7 +110,6 @@ void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
     char buf_done[sizeof(done)+1];
     memcpy(buf_done, &done, sizeof(done));
     Wire.write(buf_done);
-
   }
   else
   {
@@ -125,25 +136,27 @@ void xyCoordinatesRequestHandler()
   Serial.println("I2C request received!");
   digitalWrite(LED_BUILTIN, HIGH);
   
-  char buf_x[sizeof(x)+1];                      // temp buffer to encode x to
-  memcpy(buf_x, &x, sizeof(x));                 // encode x value to temp buffer
+  char buf_x[sizeof(x)+1];                    // temp buffer to encode x to
+  memcpy(buf_x, &x, sizeof(x));               // encode x value to temp buffer
   Serial.print("Encoded X value of\t");
   Serial.println(x);
 
-  char buf_y[sizeof(y)+1];                      // temp buffer to encode y to
-  memcpy(buf_y, &y, sizeof(y));                 // encode y value to temp buffer
+  char buf_y[sizeof(y)+1];                    // temp buffer to encode y to
+  memcpy(buf_y, &y, sizeof(y));               // encode y value to temp buffer
   Serial.print("Encoded Y value of\t");
   Serial.println(y);
 
   Serial.println("Writing message:\t");
-  int w_x = Wire1.write(buf_x, sizeof(x));      // write encoded x buffer to Wire buffer
-  int w_y = Wire1.write(buf_y, sizeof(y));      // write encoded y buffer to Wire buffer
+  int w_x = Wire1.write(buf_x, sizeof(x));    // write encoded x buffer to Wire buffer
+  int w_y = Wire1.write(buf_y, sizeof(y));    // write encoded y buffer to Wire buffer
 
   digitalWrite(LED_BUILTIN, LOW);
   Serial.print("wrote ");
   Serial.print(w_x+w_y);
   Serial.println(" bytes");
 }
+
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -153,6 +166,9 @@ void setup() {
 	pinMode(dirPin_x, OUTPUT);
   pinMode(stepPin_y, OUTPUT);
 	pinMode(dirPin_y, OUTPUT);
+
+  digitalWrite(enable_pin_x,HIGH);
+  digitalWrite(enable_pin_y,HIGH);
 
   digitalWrite(LED_BUILTIN, HIGH);
   Serial.begin(9600);
