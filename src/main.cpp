@@ -9,8 +9,8 @@
 const char header_mv = 0x61;                    // 'a'
 const char header_ok = 0x76;                    // 'v'
 
-const int enable_pin_x = 13;
-const int enable_pin_y = 18;
+const int enablePin_x = 13;
+const int enablePin_y = 18;
 const int dirPin_x = 15;
 const int stepPin_x = 14;
 const int dirPin_y = 16;
@@ -61,50 +61,55 @@ void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
     Serial.print("Y value:\t\t");
     Serial.println(y);
     
-    //actuate stepper motors here
-  
-  x_steps = Displacement_Step_Converter(x);
-  y_steps = Displacement_Step_Converter(y);
-  Serial.println(x_steps);
-  Serial.println(y_steps);
+    //actuate stepper motors
+    x_steps = Displacement_Step_Converter(x);
+    y_steps = Displacement_Step_Converter(y);
+    Serial.println("Actuating stepper motors by:");
+    Serial.print("x:\t\t\t");
+    Serial.print(x_steps);
+    Serial.println("\tsteps");
+    Serial.print("y:\t\t\t");
+    Serial.print(y_steps);
+    Serial.println("\tsteps");
 
-  //move to x position
-  digitalWrite(enable_pin_x, LOW);
-  digitalWrite(enable_pin_y, HIGH);
-  digitalWrite(dirPin_x, HIGH);
+    //move to x position
+    digitalWrite(enablePin_x, LOW);
+    digitalWrite(enablePin_y, HIGH);
+    digitalWrite(dirPin_x, HIGH);
 
-  for(int i = 0; i < x_steps; i++)
-	  {
-		  digitalWrite(stepPin_x, HIGH);
-		  delayMicroseconds(375);
-		  digitalWrite(stepPin_x, LOW);
-		  delayMicroseconds(375);
+    for(int i = 0; i < x_steps; i++)
+      {
+        digitalWrite(stepPin_x, HIGH);
+        delayMicroseconds(375);
+        digitalWrite(stepPin_x, LOW);
+        delayMicroseconds(375);
+      }
+
+    //move to y position
+    digitalWrite(enablePin_x, HIGH);
+    digitalWrite(enablePin_y, LOW);
+    digitalWrite(dirPin_y, HIGH);
+    for(int i = 0; i < y_steps; i++)
+    {
+      digitalWrite(stepPin_y, HIGH);
+      delayMicroseconds(375);
+      digitalWrite(stepPin_y, LOW);
+      delayMicroseconds(375);
     }
+    digitalWrite(enablePin_x,HIGH);
+    digitalWrite(enablePin_y,HIGH);
 
-  //move to y position
-  digitalWrite(enable_pin_x, HIGH);
-  digitalWrite(enable_pin_y, LOW);
-  digitalWrite(dirPin_y, HIGH);
-  for(int i = 0; i < y_steps; i++)
-  {
-    digitalWrite(stepPin_y, HIGH);
-    delayMicroseconds(375);
-    digitalWrite(stepPin_y, LOW);
-    delayMicroseconds(375);
-  }
-  digitalWrite(enable_pin_x,HIGH);
-  digitalWrite(enable_pin_y,HIGH);
-
-  Serial.println("Firing interrupt...");
-  digitalWrite(INT_PIN, HIGH);                // toggle the interrupt pin
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(200);
-  digitalWrite(INT_PIN, LOW);                 // restore the interrupt pin
-  digitalWrite(LED_BUILTIN, LOW);
+    Serial.println("Firing interrupt...");
+    digitalWrite(INT_PIN, HIGH);                // toggle the interrupt pin
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(INT_PIN, LOW);                 // restore the interrupt pin
+    digitalWrite(LED_BUILTIN, LOW);
   }
   else if (header == header_ok)
   {
     Serial.println("\t[coordinates valid]");
+    Serial.println();
 
     int done = 1;
     char buf_done[sizeof(done)+1];
@@ -114,6 +119,7 @@ void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
   else
   {
     Serial.println("\t[ERROR: INVALID HEADER]");
+    Serial.println();
   }
 }
 
@@ -167,8 +173,8 @@ void setup() {
   pinMode(stepPin_y, OUTPUT);
 	pinMode(dirPin_y, OUTPUT);
 
-  digitalWrite(enable_pin_x,HIGH);
-  digitalWrite(enable_pin_y,HIGH);
+  digitalWrite(enablePin_x,HIGH);
+  digitalWrite(enablePin_y,HIGH);
 
   digitalWrite(LED_BUILTIN, HIGH);
   Serial.begin(9600);
@@ -192,8 +198,8 @@ void setup() {
   Serial.println(I2C1_SLAVE_ADDR);
   Wire1.begin(I2C1_SLAVE_ADDR);
   Serial.print("I2C1 initialised");
-  Wire1.onRequest(xyCoordinatesRequestHandler);
   Wire1.onReceive(xyCommandHandler1);
+  Wire1.onRequest(xyCoordinatesRequestHandler);
   Serial.println(" and I2C1 callbacks registered");
 }
 

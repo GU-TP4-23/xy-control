@@ -26,8 +26,8 @@ void loop() {
   Serial.println("Encoding message...");
 
   char header = 0x61;                          // header ('a')
-  float x = 123.456;                           // x value
-  float y = 789;                               // y value
+  float x = 10000.0;                           // x value
+  float y = 20000.0;                           // y value
 
   Serial.print("Message header:\t");
   Serial.println(header);
@@ -62,7 +62,6 @@ void loop() {
   Wire.endTransmission();
   digitalWrite(LED_BUILTIN, LOW);
   Serial.println("I2C transaction terminated.");
-  Serial.println();
 
   Serial.println("Requesting xy go-ahead...");
   Wire.requestFrom(XY_ADDR, 1);
@@ -71,6 +70,7 @@ void loop() {
   Serial.println(xy_ready);
 
   Serial.println("Loop completed!");
+  Serial.println();
 
   delay(10000);
 }
