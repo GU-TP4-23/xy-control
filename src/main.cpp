@@ -9,12 +9,12 @@
 const char header_mv = 0x61;                    // 'a'
 const char header_ok = 0x76;                    // 'v'
 
-const int enablePin_x = 13;
-const int enablePin_y = 18;
-const int dirPin_x = 15;
-const int stepPin_x = 14;
-const int dirPin_y = 16;
-const int stepPin_y = 17;
+const int enablePin_x = 18;
+const int enablePin_y = 21;
+const int dirPin_x = 16;
+const int stepPin_x = 17;
+const int dirPin_y = 19;
+const int stepPin_y = 20;
 
 char header;
 float x;
