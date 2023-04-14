@@ -43,7 +43,6 @@ void XY_Coord_Sender(int x_coord, int y_coord)
   Wire.endTransmission();
   digitalWrite(LED_BUILTIN, LOW);
   Serial.println("I2C transaction terminated.");
-  Serial.println();
 
   Serial.println("Requesting xy go-ahead...");
   Wire.requestFrom(XY_ADDR, 1);
@@ -52,6 +51,7 @@ void XY_Coord_Sender(int x_coord, int y_coord)
   Serial.println(xy_ready);
 
   Serial.println("Loop completed!");
+  Serial.println();
 
   delay(10000);
   }
