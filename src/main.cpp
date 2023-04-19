@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Serial.h>
 #include <Wire.h>
+#include <AccelStepper.h>
 
 #define I2C0_SLAVE_ADDR 0x56
 #define I2C1_SLAVE_ADDR 0x57
@@ -21,6 +22,9 @@ float x;
 float y;
 float x_steps;
 float y_steps;
+
+AccelStepper stepper_x = AccelStepper(1, stepPin_x, dirPin_x);
+AccelStepper stepper_y = AccelStepper(1, stepPin_y, dirPin_y);
 
 int Displacement_Step_Converter(int displacement_um) //function returns the step value after converting um input displacement
 {
@@ -72,30 +76,26 @@ void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
     Serial.print(y_steps);
     Serial.println("\tsteps");
 
+    //setup stepper parameters
+    stepper_x.setMaxSpeed(5000);
+	  stepper_y.setMaxSpeed(5000);
+	  stepper_x.setAcceleration(200);
+	  stepper_y.setAcceleration(200);
+
     //move to x position
     digitalWrite(enablePin_x, LOW);
     digitalWrite(enablePin_y, HIGH);
-    digitalWrite(dirPin_x, HIGH);
 
-    for(int i = 0; i < x_steps; i++)
-      {
-        digitalWrite(stepPin_x, HIGH);
-        delayMicroseconds(375);
-        digitalWrite(stepPin_x, LOW);
-        delayMicroseconds(375);
-      }
+    stepper_x.moveTo(x_steps);
+	  stepper_x.runToPosition();
 
     //move to y position
     digitalWrite(enablePin_x, HIGH);
     digitalWrite(enablePin_y, LOW);
-    digitalWrite(dirPin_y, HIGH);
-    for(int i = 0; i < y_steps; i++)
-    {
-      digitalWrite(stepPin_y, HIGH);
-      delayMicroseconds(375);
-      digitalWrite(stepPin_y, LOW);
-      delayMicroseconds(375);
-    }
+
+	  stepper_y.moveTo(y_steps);
+	  stepper_y.runToPosition();
+
     digitalWrite(enablePin_x,HIGH);
     digitalWrite(enablePin_y,HIGH);
 
