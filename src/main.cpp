@@ -3,40 +3,103 @@
 #include <Wire.h>
 #include <AccelStepper.h>
 
-#define I2C0_SLAVE_ADDR 0x56
-#define I2C1_SLAVE_ADDR 0x57
+#define I2C0_SLAVE_ADDR 55
+#define I2C1_SLAVE_ADDR 56
 #define INT_PIN A2
+
+#define limitPin_yInput 10
+#define limitPin_y3V3 11
+#define limitPin_xInput 14
+#define limitPin_x3V3 15
+#define enablePin_x 18
+#define enablePin_y 21
+#define dirPin_x 16
+#define stepPin_x 17
+#define dirPin_y 19
+#define stepPin_y 20
 
 const char header_mv = 0x61;                    // 'a'
 const char header_ok = 0x76;                    // 'v'
 
-const int enablePin_x = 18;
-const int enablePin_y = 21;
-const int dirPin_x = 16;
-const int stepPin_x = 17;
-const int dirPin_y = 19;
-const int stepPin_y = 20;
-
 char header;
-float x;
-float y;
-float x_steps;
-float y_steps;
+int x;
+int y;
+int x_steps;
+int y_steps;
+int initial_homing = -1;
 
 AccelStepper stepper_x = AccelStepper(1, stepPin_x, dirPin_x);
 AccelStepper stepper_y = AccelStepper(1, stepPin_y, dirPin_y);
 
-int Displacement_Step_Converter(int displacement_um) //function returns the step value after converting um input displacement
+int coordinatesToSteps(int coordinate_um)
+// converts coordinates from um to steps
 {
     float pinion_circumference = 37800; //this is in um //this is been calculated by hand (C = pi*D)
-    int step_resolution = round(pinion_circumference/3200);
-    int StepValue = round(displacement_um/step_resolution);
-    return StepValue;
+    float step_resolution = pinion_circumference/3200;
+    int steps = round(coordinate_um/step_resolution);
+    return steps;
   }
+
+void homeXAxis()
+{
+  int input_state = digitalRead(limitPin_xInput);
+  Serial.print("[x-axis] Input state:\t");
+  Serial.println(input_state);
+  digitalWrite(enablePin_x, LOW);
+  digitalWrite(enablePin_y, HIGH);
+  while(!digitalRead(limitPin_xInput))  //pull-down resistor keeps it low, press makes it high
+    {         
+      stepper_x.moveTo(initial_homing);
+      stepper_x.run();
+      initial_homing--;
+      delay(5);
+    }
+  stepper_x.setCurrentPosition(0);
+  initial_homing=1;
+  while(digitalRead(limitPin_xInput))  
+    {     
+      stepper_x.moveTo(initial_homing);
+      stepper_x.run();
+      initial_homing++;
+      delay(5);
+    }
+  Serial.println("[x-axis] We're home");
+  stepper_x.setCurrentPosition(0);
+  initial_homing = -1;
+}
+
+void homeYAxis()
+{
+  int input_state = digitalRead(limitPin_yInput);
+  Serial.print("[y-axis] Input state:\t");
+  Serial.println(input_state);
+  digitalWrite(enablePin_x, HIGH);
+  digitalWrite(enablePin_y, LOW);
+  while(!digitalRead(limitPin_yInput))  //pull-down resistor keeps it low, press makes it high
+    {         
+      stepper_y.moveTo(initial_homing);
+      stepper_y.run();
+      initial_homing--;
+      delay(5);
+    }
+  stepper_y.setCurrentPosition(0);
+  initial_homing=1;
+  while(digitalRead(limitPin_yInput))  
+    {     
+      stepper_y.moveTo(initial_homing);
+      stepper_y.run();
+      initial_homing++;
+      delay(5);
+    }
+  Serial.println("[y-axis] We're home");
+  stepper_y.setCurrentPosition(0);
+}
+
 
 void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
 {
-  Serial.println("Transmission from master device detected!");
+  Serial.print(millis());
+  Serial.println("\tTransmission from master device detected!");
   Serial.print("Reading message...\t");
 
   char buf[howMany];
@@ -66,9 +129,10 @@ void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
     Serial.println(y);
     
     //actuate stepper motors
-    x_steps = Displacement_Step_Converter(x);
-    y_steps = Displacement_Step_Converter(y);
-    Serial.println("Actuating stepper motors by:");
+    x_steps = coordinatesToSteps(x);
+    y_steps = coordinatesToSteps(y);
+    Serial.print(millis());
+    Serial.println("\tActuating stepper motors by:");
     Serial.print("x:\t\t\t");
     Serial.print(x_steps);
     Serial.println("\tsteps");
@@ -98,13 +162,15 @@ void xyCommandHandlerGeneric(MbedI2C *bus, int howMany)
 
     digitalWrite(enablePin_x,HIGH);
     digitalWrite(enablePin_y,HIGH);
-
-    Serial.println("Firing interrupt...");
+    
+    Serial.println(millis());
+    Serial.println("\tFiring interrupt...");
     digitalWrite(INT_PIN, HIGH);                // toggle the interrupt pin
     digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);
+    delay(50);
     digitalWrite(INT_PIN, LOW);                 // restore the interrupt pin
     digitalWrite(LED_BUILTIN, LOW);
+    
   }
   else if (header == header_ok)
   {
@@ -139,7 +205,8 @@ void xyCommandHandler1(int howMany)
 
 void xyCoordinatesRequestHandler()
 {
-  Serial.println("I2C request received!");
+  Serial.print(millis());
+  Serial.println("\tI2C request received!");
   digitalWrite(LED_BUILTIN, HIGH);
   
   char buf_x[sizeof(x)+1];                    // temp buffer to encode x to
@@ -166,6 +233,16 @@ void xyCoordinatesRequestHandler()
 
 void setup() {
   // put your setup code here, to run once:
+  Serial.begin(9600);
+  Serial.println("T5 XY CONTROLLER");
+
+  stepper_x.setCurrentPosition(0);
+  stepper_x.setMaxSpeed(5000);              // stepper max speed of steps per second
+  stepper_x.setAcceleration(200); 
+  stepper_y.setCurrentPosition(0);
+  stepper_y.setMaxSpeed(5000);              // stepper max speed of steps per second 
+  stepper_y.setAcceleration(200); 
+
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(INT_PIN, OUTPUT);
   pinMode(stepPin_x, OUTPUT);
@@ -173,15 +250,24 @@ void setup() {
   pinMode(stepPin_y, OUTPUT);
 	pinMode(dirPin_y, OUTPUT);
 
-  digitalWrite(enablePin_x,HIGH);
-  digitalWrite(enablePin_y,HIGH);
+  pinMode(limitPin_xInput, INPUT);
+  pinMode(limitPin_x3V3, OUTPUT);
+
+  pinMode(limitPin_yInput, INPUT);
+  pinMode(limitPin_y3V3, OUTPUT);
+
+  gpio_pull_down(limitPin_xInput);  // pull-down for x-axis limit switch input pin
+  gpio_pull_down(limitPin_yInput);  // pull-down for y-axis limit switch input pin
+ 
+  digitalWrite(enablePin_x, HIGH);
+  digitalWrite(enablePin_y, HIGH);
+  digitalWrite(limitPin_x3V3, HIGH);
+  digitalWrite(limitPin_y3V3, HIGH);
 
   digitalWrite(LED_BUILTIN, HIGH);
-  Serial.begin(9600);
-  //while (!Serial);
+  homeXAxis();
+  homeYAxis();
   digitalWrite(LED_BUILTIN, LOW);
-
-  Serial.println("T5 XY CONTROLLER");
 
   Serial.println("initialising I2C0 (Wire)...");
   Serial.println("mode:\tslave");
@@ -202,6 +288,8 @@ void setup() {
   Wire1.onRequest(xyCoordinatesRequestHandler);
   Serial.println(" and I2C1 callbacks registered");
 }
+
+
 
 void loop() {
   // put your main code here, to run repeatedly:
